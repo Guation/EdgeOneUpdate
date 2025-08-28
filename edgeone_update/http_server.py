@@ -10,18 +10,20 @@ from urllib.parse import urlparse, parse_qs
 from .edgeone_api import update_record
 from logging import debug, info, warning, error
 
-class JSONRequestHandler(http.server.BaseHTTPRequestHandler):
-    def __init__(self, *args, **kwargs) -> None:
-        self.__ip = "127.0.0.1"
-        self.__port = 80
-        self.__update_time = 0
-        super().__init__(*args, **kwargs)
+class Config:
+    ip = "127.0.0.1"
+    port = 80
+    update_time = 0
 
+class JSONRequestHandler(http.server.BaseHTTPRequestHandler):
     def __update(self):
         now_time = time.perf_counter()
-        if now_time - self.__update_time < 10:
-            update_record(self.__ip, self.__port)
-        self.__update_time = now_time
+        debug("ip=%s, port=%s, update_time=%s, now_time=%s", Config.ip, Config.port, Config.update_time, now_time)
+        if now_time - Config.update_time < 10:
+            update_record(Config.ip, Config.port)
+            Config.update_time = 0
+        else:
+            Config.update_time = now_time
 
     def _set_headers(self, status_code=200):
         self.send_response(status_code)
@@ -55,11 +57,12 @@ class JSONRequestHandler(http.server.BaseHTTPRequestHandler):
         
         try:
             json_data = json.loads(post_data.decode('utf-8'))
+            debug(json_data)
             if json_data["type"] == "A":
-                self.__ip = json_data["data"]
+                Config.ip = json_data["data"]
                 self.__update()
             elif json_data["type"] == "SRV":
-                self.__port = json_data["port"]
+                Config.port = json_data["port"]
                 self.__update()
             response = {
                 "error": "",

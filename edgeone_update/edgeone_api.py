@@ -67,6 +67,7 @@ def update_record(ip: str, port: int):
         "ZoneId": zoneid,
         "DomainName": recordid,
         "OriginInfo": {
+            "OriginType": "IP_DOMAIN",
             "Origin": ip
         },
         "HttpOriginPort": port,

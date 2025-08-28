@@ -1,0 +1,6 @@
+__pycache__
+.vscode
+/build/
+/dist/
+/edgeone_update.egg-info/
+/edgeone_update.pyz
