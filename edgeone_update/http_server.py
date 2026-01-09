@@ -3,7 +3,7 @@
 
 __author__ = "Guation"
 
-import json, socket, time
+import json, threading, time
 import http.server
 import socketserver
 from urllib.parse import urlparse, parse_qs
@@ -11,19 +11,28 @@ from .edgeone_api import update_record
 from logging import debug, info, warning, error
 
 class Config:
-    ip = "127.0.0.1"
+    ip = "8.8.8.8"
     port = 80
     update_time = 0
+    timer = threading.Timer(0, time.sleep, (0,))
 
 class JSONRequestHandler(http.server.BaseHTTPRequestHandler):
-    def __update(self):
-        now_time = time.perf_counter()
-        debug("ip=%s, port=%s, update_time=%s, now_time=%s", Config.ip, Config.port, Config.update_time, now_time)
-        if now_time - Config.update_time < 10:
+    def __update(self, count):
+        debug("ip=%s, port=%s", Config.ip, Config.port)
+        try:
             update_record(Config.ip, Config.port)
-            Config.update_time = 0
-        else:
-            Config.update_time = now_time
+        except ValueError:
+            if count > 0:
+                error("更新错误，60s后重试", stack_info=True)
+                Config.timer = threading.Timer(60, self.__update, (count - 1,))
+                Config.timer.start()
+            else:
+                error("更新错误", stack_info=True)
+
+    def _update(self):
+        Config.timer.cancel()
+        Config.timer = threading.Timer(30, self.__update, (10,))
+        Config.timer.start()
 
     def _set_headers(self, status_code=200):
         self.send_response(status_code)
@@ -60,10 +69,10 @@ class JSONRequestHandler(http.server.BaseHTTPRequestHandler):
             debug(json_data)
             if json_data["type"] == "A":
                 Config.ip = json_data["data"]
-                self.__update()
+                self._update()
             elif json_data["type"] == "SRV":
                 Config.port = json_data["port"]
-                self.__update()
+                self._update()
             response = {
                 "error": "",
                 "status": "success"
