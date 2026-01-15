@@ -19,6 +19,9 @@ def init(id: str, token: str, sub_domain: str, domain: str):
     __sub_domain = sub_domain
     __domain = domain
 
+def domain2punycode(domain: str):
+    return domain.encode('idna').decode('ascii')
+
 def hmac_sha256(key: bytes, data: str) -> bytes:
     return hmac.new(key, data.encode("utf-8"), hashlib.sha256).digest()
 
@@ -67,20 +70,22 @@ def request(action: str, params: dict = None):
         ) from e
 
 def search_zoneid(domain: str) -> str:
+    domainPunycode = domain2punycode(domain)
     for i in request("DescribeZones", {})["Zones"]:
-        if domain == i["ZoneName"]:
+        if domain2punycode(i["ZoneName"]) == domainPunycode:
             return i["ZoneId"]
     raise ValueError(
         "无法搜索到域名%s" % domain
     )
 
 def search_recordid(sub_domain: str, zoneid: str) -> str:
+    domainPunycode = domain2punycode(sub_domain)
     params = {
         "ZoneId": zoneid,
         "Limit": 200
     }
     for i in request("DescribeAccelerationDomains", params)["AccelerationDomains"]:
-        if sub_domain == i["DomainName"]:
+        if domain2punycode(i["DomainName"]) == domainPunycode:
             return i["DomainName"]
     raise ValueError(
         "无法搜索到前缀%s" % sub_domain
