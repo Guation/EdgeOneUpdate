@@ -1,5 +1,7 @@
 # EdgeOneUpdate
 
+已合并到 [NAT1 Traversal](https://github.com/Guation/nat1_traversal)
+
 ## 使用方法
 1. 在[EdgeOne](https://console.cloud.tencent.com/edgeone/zones)控制台点击新增站点，绑定您的域名，其值与`config.json`的`domain`字段相同。
 
